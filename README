@@ -1,0 +1,28 @@
+Computer Architecture Project
+
+honor code:
+On my honor, I have neither given nor received unauthorized aid on this assignment.
+
+Name: Yunhao Wan
+UFID: 16773116
+gator-link: yunhao
+email: yunhao@ufl.edu
+
+**********************************************************************************
+
+Part I
+The program is written in Python 3. It has been tested under OSX 10.11.6 Python 3.5.2(the author's computer) and
+Python 3.4.3(CISE thunder)
+
+Due to the nature of Python, to run the program, compiling is not required. Just make sure both MIPSsim.py and
+mips32.py files are in the current folder/path. to run the program you may use the following format:
+
+python3 MIPSsim.py <inputfilename> <outputfilename> <operation> [-Tm:n]
+
+For more information on how to use the arguments of the program, use the following command in the terminal/console:
+
+python3 MIPSsim.py -h
+
+**********************************************************************************
+
+Part II implementation will be added in the second half of 2016 Fall semester.
