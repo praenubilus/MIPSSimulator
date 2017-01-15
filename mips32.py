@@ -8,6 +8,10 @@ class Data:
         self.pc_val = pc_val
         self.int_val = signed_bin_to_int(self.bin_val_str)
 
+    def set_int_val(self, new_val):
+        self.int_val = new_val
+        # TODO update the binary value string from int val
+
     def __str__(self):
         return '{} {} {}'.format(self.bin_val_str, str(self.pc_val), str(self.int_val))
 
@@ -42,13 +46,6 @@ class Instruction:
                           '000000': cls.type_r}
             return _inst_dict[opcode]
 
-    type = _Types.type_unknown
-    opcode = ''
-    instr_str = ''
-    formatted_instr_bin_str = ''
-    pc_value = 0
-    desc_str = ''
-
     class _InstSet(Enum):
         # detail instructions for different types here, follow the format as the DummyInstruction below
         # INSTR_001000 = ('DummyInstruction', 'SW')
@@ -66,7 +63,12 @@ class Instruction:
         self.instr_str = format(int.from_bytes(instruction_binary, byteorder=endian), '032b')
         self.opcode = self.instr_str[0:6]
         self.type = Instruction._Types.get_type(opcode=self.opcode)
-        self.pc_value = pc_val
+        self.pc_val = pc_val
+        self.formatted_instr_bin_str = ''
+        self.desc_str = ''
+        self.dest = None
+        self.op1_val = None
+        self.op2_val = None
 
         self.formatted_instr_bin_str = self.instr_str[0:6] + ' ' + self.instr_str[6:11] + ' ' + self.instr_str[11:16] \
                                        + ' ' + self.instr_str[16:21] + ' ' + self.instr_str[21:26] + ' ' \
@@ -86,7 +88,7 @@ class Instruction:
         pass
 
     def __str__(self):
-        return '{} {} {}'.format(self.formatted_instr_bin_str, str(self.pc_value), self.desc_str)
+        return '{} {} {}'.format(self.formatted_instr_bin_str, str(self.pc_val), self.desc_str)
 
     def is_break(self):
         if self.__class__ is InstructionBreakpoint:
@@ -121,7 +123,7 @@ class InstructionTypeJ(Instruction):
         INSTR_000010 = ('InstructionJump', 'J')
 
     def _parse_instr_binary(self):
-        print("J type Instruction")
+        # print("J type Instruction")
         self.instr_code = InstructionTypeJ._InstSet['INSTR_' + self.opcode]
         self.__class__ = self.instr_code.get_instr_class
         self._inst_decode()
@@ -144,6 +146,8 @@ class InstructionJump(InstructionTypeJ):
     target_instr_index_str = ''
 
     def _inst_decode(self):
+        self.dest = int(self.instr_str[6:32], 2) << 2
+
         # TODO: add the first 4 bits of the Jump, from PC?
         self.target_instr_index_str = str(int(self.instr_str[6:32], 2) << 2)
         self.desc_str = '{} #{}'.format(self.instr_code.abbr, self.target_instr_index_str)
@@ -181,7 +185,7 @@ class InstructionTypeI(Instruction):
         INSTR_001010 = ('InstructionSetOnLessThanImmediate', 'SLTI')
 
     def _parse_instr_binary(self):
-        print("I type Instruction")
+        # print("I type Instruction")
         # offset variable is for convenience.
         self.register_s = self.instr_str[6:11]
         self.register_t = self.instr_str[11:16]
@@ -214,6 +218,9 @@ class InstructionStoreWord(InstructionTypeI):
     def _inst_decode(self):
         # base is in register s, base variable is for convenience.
         self.base = self.register_s
+        self.dest = int(self.register_t, 2)  # data to be stored
+        self.op1_val = int(self.offset, 2)  # base, which is a const
+        self.op2_val = int(self.base, 2)  # dest offset from reg
 
         self.desc_str = '{} R{}, {}(R{})'.format(self.instr_code.abbr, int(self.register_t, 2), int(self.offset, 2),
                                                  int(self.base, 2))
@@ -233,6 +240,9 @@ class InstructionLoadWord(InstructionTypeI):
     def _inst_decode(self):
         # base is in register s, base variable is for convenience.
         self.base = self.register_s
+        self.dest = int(self.register_t, 2)
+        self.op1_val = int(self.offset, 2)
+        self.op2_val = int(self.base, 2)
 
         self.desc_str = '{} R{}, {}(R{})'.format(self.instr_code.abbr, int(self.register_t, 2), int(self.offset, 2),
                                                  int(self.base, 2))
@@ -252,6 +262,10 @@ class InstructionBranchOnEqual(InstructionTypeI):
     """
 
     def _inst_decode(self):
+        self.op1_val = int(self.register_s, 2)
+        self.op2_val = int(self.register_t, 2)
+        self.dest = signed_bin_to_int(self.offset) << 2
+
         self.desc_str = '{} R{}, R{}, #{}'.format(self.instr_code.abbr, int(self.register_s, 2),
                                                   int(self.register_t, 2), signed_bin_to_int(self.offset) << 2)
 
@@ -364,6 +378,9 @@ class InstructionAddImmediateWord(InstructionTypeI):
     # TODO: The signed number issue has not been implemented yet. negative number will got wrong value
     def _inst_decode(self):
         self.immediate = self.target
+        self.dest = int(self.register_t, 2)
+        self.op1_val = int(self.register_s, 2)
+        self.op2_val = signed_bin_to_int(self.immediate)
 
         self.desc_str = '{} R{}, R{}, #{}'.format(self.instr_code.abbr, int(self.register_t, 2),
                                                   int(self.register_s, 2), signed_bin_to_int(self.immediate))
@@ -386,6 +403,9 @@ class InstructionAddImmediateUnsignedWord(InstructionTypeI):
 
     def _inst_decode(self):
         self.immediate = self.target
+        self.dest = int(self.register_t, 2)
+        self.op1_val = int(self.register_s, 2)
+        self.op2_val = signed_bin_to_int(self.immediate)
 
         self.desc_str = '{} R{}, R{}, #{}'.format(self.instr_code.abbr, int(self.register_t, 2),
                                                   int(self.register_s, 2), signed_bin_to_int(self.immediate))
@@ -450,7 +470,7 @@ class InstructionTypeR(Instruction):
         INSTR_101011 = ('InstructionSetOnLessThanUnsigned', 'SLTU')
 
     def _parse_instr_binary(self):
-        print("R type Instruction")
+        # print("R type Instruction")
         # offset variable is for convenience.
         self.register_s = self.instr_str[6:11]
         self.register_t = self.instr_str[11:16]
@@ -622,6 +642,10 @@ class InstructionAddWord(InstructionTypeR):
     """
 
     def _inst_decode(self):
+        self.dest = int(self.register_d, 2)
+        self.op1_val = int(self.register_s, 2)
+        self.op2_val = int(self.register_t, 2)
+
         self.desc_str = '{} R{}, R{}, R{}'.format(self.instr_code.abbr, int(self.register_d, 2),
                                                   int(self.register_s, 2), int(self.register_t, 2))
 
@@ -637,6 +661,9 @@ class InstructionAddUnsignedWord(InstructionTypeR):
     """
 
     def _inst_decode(self):
+        self.dest = int(self.register_d, 2)
+        self.op1_val = int(self.register_s, 2)
+        self.op2_val = int(self.register_t, 2)
         self.desc_str = '{} R{}, R{}, R{}'.format(int(self.instr_code.abbr, 2), int(self.register_d, 2),
                                                   int(self.register_s, 2),
                                                   int(self.register_t, 2))

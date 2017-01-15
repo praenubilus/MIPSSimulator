@@ -25,4 +25,5 @@ python3 MIPSsim.py -h
 
 **********************************************************************************
 
-Part II implementation will be added in the second half of 2016 Fall semester.
+Part II
+This part implemented tomasulo Cycle by Cycle pipeline simulation. It can simulate the pipeline status for each cycle.
