@@ -18,5 +18,5 @@ For more information on how to use the arguments of the program, use the followi
 python3 MIPSsim.py -h
 ```
 
-Part II
+## Part II
 This part implemented tomasulo Cycle by Cycle pipeline simulation. It can simulate the pipeline status for each cycle.
